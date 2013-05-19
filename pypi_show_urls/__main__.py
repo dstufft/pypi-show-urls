@@ -89,7 +89,8 @@ def main():
         xmlrpc = xmlrpclib.ServerProxy("https://pypi.python.org/pypi")
         packages = []
         for user in users:
-            packages.extend([x[1] for x in xmlrpc.user_packages(user)])
+            packages.extend([x[1] for x in xmlrpc.user_packages(user)
+                                                        if x[1] is not None])
 
     # Should we run in verbose mode
     verbose = args.verbose
