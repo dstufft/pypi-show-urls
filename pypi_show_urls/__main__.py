@@ -28,7 +28,14 @@ def installable(project, url):
                         safe_name(dist.project_name).lower() == normalized])
 
 
+def version_for_url(project, url):
+    normalized = safe_name(project).lower()
+    return [dist for dist in distros_for_url(url) if
+                safe_name(dist.project_name).lower() == normalized][0].version
+
+
 def process_page(html, package, url):
+    installable_ = set()
     header = False
     for link in html.xpath("//a"):
         try:
@@ -44,6 +51,8 @@ def process_page(html, package, url):
                 header = True
 
             print("    " + link.attrib["href"])
+            installable_.add((url, link.attrib["href"]))
+    return installable_
 
 
 def main():
@@ -65,6 +74,7 @@ def main():
         html = lxml.html.document_fromstring(resp.content)
 
         spider = set()
+        installable_ = set()
 
         for link in itertools.chain(
                             html.find_rel_links("download"),
@@ -81,7 +91,7 @@ def main():
                     spider.add(link.attrib["href"])
 
         # Find installable links from the PyPI page
-        process_page(html, package, url)
+        installable_ |= process_page(html, package, url)
 
         # Find installable links from pages we spider
         for link in spider:
@@ -92,7 +102,25 @@ def main():
                 continue
 
             html = lxml.html.document_fromstring(resp.content)
-            process_page(html, package, link)
+            installable_ |= process_page(html, package, link)
+
+        # Find the ones only available externally
+        internal = set()
+        external = set()
+        for candidate in installable_:
+            version = version_for_url(package, candidate[1])
+            if candidate[0] == url:
+                internal.add(version)
+            else:
+                external.add(version)
+
+        # Display information
+        print("")
+        print("  Candidates only available externally")
+        print("  ------------------------------------")
+
+        for version in (external - internal):
+            print("    " + version)
 
 
 if __name__ == "__main__":
