@@ -37,9 +37,8 @@ def version_for_url(project, url):
 
 
 def process_page(html, package, url, verbose):
-    print("")
-
     if verbose:
+        print("")
         print("  Candidates from %s" % url)
         print("  ----------------" + ("-" * len(url)))
 
@@ -154,9 +153,8 @@ def main():
                 external.add(version)
 
         # Display information
-        print("")
-
         if verbose:
+            print("")
             print("  Versions only available externally")
             print("  ----------------------------------")
 
