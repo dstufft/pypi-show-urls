@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="pypi-show-urls",
-    version="1.3.1",
+    version="1.3.2",
 
     description="Shows all the installation candidates for a list of packages",
     long_description=open("README.rst").read(),
