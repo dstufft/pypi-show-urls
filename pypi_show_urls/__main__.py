@@ -34,10 +34,12 @@ def version_for_url(project, url):
                 safe_name(dist.project_name).lower() == normalized][0].version
 
 
-def process_page(html, package, url):
+def process_page(html, package, url, verbose):
     print("")
-    print("  Candidates from %s" % url)
-    print("  ----------------" + ("-" * len(url)))
+
+    if verbose:
+        print("  Candidates from %s" % url)
+        print("  ----------------" + ("-" * len(url)))
 
     installable_ = set()
     for link in html.xpath("//a"):
@@ -47,14 +49,24 @@ def process_page(html, package, url):
             continue
 
         if "href" in link.attrib and installable(package, link.attrib["href"]):
-            print("    " + link.attrib["href"])
+            if verbose:
+                print("    " + link.attrib["href"])
             installable_.add((url, link.attrib["href"]))
+
+    if not verbose:
+        print("  %s Candiates from %s" % (len(installable_), url))
+
     return installable_
 
 
 def main():
     # A list of packages to look for
     packages = sys.argv[1:]
+
+    verbose = False
+    if len(packages) and packages[0] == "-v":
+        verbose = True
+        packages = packages[1:]
 
     session = requests.session()
     session.verify = False
@@ -89,7 +101,7 @@ def main():
                     spider.add(link.attrib["href"])
 
         # Find installable links from the PyPI page
-        installable_ |= process_page(html, package, url)
+        installable_ |= process_page(html, package, url, verbose)
 
         # Find installable links from pages we spider
         for link in spider:
@@ -100,7 +112,7 @@ def main():
                 continue
 
             html = lxml.html.document_fromstring(resp.content)
-            installable_ |= process_page(html, package, link)
+            installable_ |= process_page(html, package, link, verbose)
 
         # Find the ones only available externally
         internal = set()
@@ -114,11 +126,16 @@ def main():
 
         # Display information
         print("")
-        print("  Candidates only available externally")
-        print("  ------------------------------------")
 
-        for version in (external - internal):
-            print("    " + version)
+        if verbose:
+            print("  Versions only available externally")
+            print("  ----------------------------------")
+
+            for version in (external - internal):
+                print("    " + version)
+        else:
+            print("  %s versions only available externally" %
+                                                    len((external - internal)))
 
 
 if __name__ == "__main__":
