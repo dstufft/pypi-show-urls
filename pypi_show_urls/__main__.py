@@ -21,6 +21,7 @@ import html5lib
 import requests
 
 from pkg_resources import safe_name
+from pip.req import parse_requirements
 from setuptools.package_index import distros_for_url
 
 
@@ -36,7 +37,7 @@ def version_for_url(project, url):
                 safe_name(dist.project_name).lower() == normalized][0].version
 
 
-def process_page(html, package, url, verbose):
+def process_page(html, package, url, verbose, requirements):
     if verbose:
         print("")
         print("  Candidates from %s" % url)
@@ -51,6 +52,14 @@ def process_page(html, package, url, verbose):
                 continue
 
             if installable(package, absolute_link):
+                # If we have a requirements mapping, make sure the candidate
+                #   we found matches atleast one of the specs
+                if requirements is not None:
+                    version = version_for_url(package, absolute_link)
+                    if not any([version in req
+                                            for req in requirements[package]]):
+                        continue
+
                 if verbose:
                     print("    " + absolute_link)
                 installable_.add((url, absolute_link))
@@ -69,16 +78,20 @@ def main():
     group.add_argument("-p", "--packages",
                                     dest="is_packages", action="store_true")
     group.add_argument("-u", "--users", dest="is_users", action="store_true")
+    group.add_argument("-r", "--requirement-file",
+                                dest="requirement_file", action="store_true")
 
     parser.add_argument("items", nargs="+")
 
     args = parser.parse_args()
 
-    if args.is_packages and args.is_users:
-        return "Must specify only one of -u and -p"
+    if len(filter(None,
+                [args.is_packages, args.is_users, args.requirement_file])) > 1:
+        return "Must specify only one of -u, -p, and -r"
 
-    if not args.is_packages and not args.is_users:
-        return "Must specify one of -u or -p"
+    if (not args.is_packages and not args.is_users
+                                                and not args.requirement_file):
+        return "Must specify one of -u, -p, or -r"
 
     if args.is_packages:
         # A list of packages to look for
@@ -92,6 +105,17 @@ def main():
         for user in users:
             packages.extend([x[1] for x in xmlrpc.user_packages(user)
                                                         if x[1] is not None])
+
+    requirements = None
+    if args.requirement_file:
+        # a list of requirements files to process
+        files = args.items
+        packages = []
+        requirements = {}
+        for filename in files:
+            for req in parse_requirements(filename):
+                requirements.setdefault(req.name, []).append(req.req)
+                packages.append(req.name)
 
     # Should we run in verbose mode
     verbose = args.verbose
@@ -131,7 +155,7 @@ def main():
                         spider.add(absolute_link)
 
         # Find installable links from the PyPI page
-        installable_ |= process_page(html, package, url, verbose)
+        installable_ |= process_page(html, package, url, verbose, requirements)
 
         # Find installable links from pages we spider
         for link in spider:
@@ -142,7 +166,8 @@ def main():
                 continue
 
             html = html5lib.parse(resp.content, namespaceHTMLElements=False)
-            installable_ |= process_page(html, package, link, verbose)
+            installable_ |= process_page(html, package, link,
+                                                        verbose, requirements)
 
         # Find the ones only available externally
         internal = set()

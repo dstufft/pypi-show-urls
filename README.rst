@@ -23,6 +23,10 @@ Usage
     # Show all the counts for a set of packages owned by users
     $ pypi-show-urls -u user1 user2 user3
 
+    # Show all the counts for a set of packages in a list of requirements files
+    $ pypi-show-urls -r requirements.txt requirements-dev.txt
+
     # Show all the urls found and all the versions only available externally
     $ pypi-show-urls -v -p package1 package2 package3
     $ pypi-show-urls -v -u user1 user2 user3
+    $ pypi-show-urls -v -r requirements.txt requirements-dev.txt
