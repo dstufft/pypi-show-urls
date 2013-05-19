@@ -35,8 +35,11 @@ def version_for_url(project, url):
 
 
 def process_page(html, package, url):
+    print("")
+    print("  Candidates from %s" % url)
+    print("  ----------------" + ("-" * len(url)))
+
     installable_ = set()
-    header = False
     for link in html.xpath("//a"):
         try:
             link.make_links_absolute(url)
@@ -44,12 +47,6 @@ def process_page(html, package, url):
             continue
 
         if "href" in link.attrib and installable(package, link.attrib["href"]):
-            if not header:
-                print("")
-                print("  Candidates from %s" % url)
-                print("  ----------------" + ("-" * len(url)))
-                header = True
-
             print("    " + link.attrib["href"])
             installable_.add((url, link.attrib["href"]))
     return installable_
