@@ -6,6 +6,7 @@ setup(
     version="1.2.1",
 
     description="Shows all the installation candidates for a list of packages",
+    long_description=open("README.rst").read(),
     url="https://github.com/dstufft/pypi-show-urls",
 
     author="Donald Stufft",
