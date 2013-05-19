@@ -63,6 +63,7 @@ def main():
     session.verify = False
 
     for package in packages:
+        print("")
         print("Download candidates for %s" % package)
         print("========================" + ("=" * len(package)))
 
