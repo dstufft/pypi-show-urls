@@ -108,12 +108,16 @@ def main():
 
     requirements = None
     if args.requirement_file:
+        class fakeopts:
+            default_vcs = ""
+            skip_requirements_regex = ""
+
         # a list of requirements files to process
         files = args.items
         packages = []
         requirements = {}
         for filename in files:
-            for req in parse_requirements(filename):
+            for req in parse_requirements(filename, options=fakeopts):
                 requirements.setdefault(req.name, []).append(req.req)
                 packages.append(req.name)
 
