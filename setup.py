@@ -13,8 +13,8 @@ setup(
     author_email="donald@stufft.io",
 
     install_requires=[
+        "html5lib",
         "requests",
-        "lxml",
     ],
 
     packages=find_packages(exclude=["tests"]),

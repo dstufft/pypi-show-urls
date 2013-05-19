@@ -17,7 +17,7 @@ import sys
 import urlparse
 import xmlrpclib
 
-import lxml.html
+import html5lib
 import requests
 
 from pkg_resources import safe_name
@@ -43,16 +43,17 @@ def process_page(html, package, url, verbose):
         print("  ----------------" + ("-" * len(url)))
 
     installable_ = set()
-    for link in html.xpath("//a"):
-        try:
-            link.make_links_absolute(url)
-        except ValueError:
-            continue
+    for link in html.findall(".//a"):
+        if "href" in link.attrib:
+            try:
+                absolute_link = urlparse.urljoin(url, link.attrib["href"])
+            except Exception:
+                continue
 
-        if "href" in link.attrib and installable(package, link.attrib["href"]):
-            if verbose:
-                print("    " + link.attrib["href"])
-            installable_.add((url, link.attrib["href"]))
+            if installable(package, absolute_link):
+                if verbose:
+                    print("    " + absolute_link)
+                installable_.add((url, absolute_link))
 
     if not verbose:
         print("  %s Candiates from %s" % (len(installable_), url))
@@ -110,24 +111,24 @@ def main():
             continue
         resp.raise_for_status()
 
-        html = lxml.html.document_fromstring(resp.content)
+        html = html5lib.parse(resp.content, namespaceHTMLElements=False)
 
         spider = set()
         installable_ = set()
 
         for link in itertools.chain(
-                            html.find_rel_links("download"),
-                            html.find_rel_links("homepage")):
-            try:
-                link.make_links_absolute(url)
-            except ValueError:
-                continue
+                            html.findall(".//a[@rel='download']"),
+                            html.findall(".//a[@rel='homepage']")):
+            if "href" in link.attrib:
+                try:
+                    absolute_link = urlparse.urljoin(url, link.attrib["href"])
+                except Exception:
+                    continue
 
-            if "href" in link.attrib and not \
-                                    installable(package, link.attrib["href"]):
-                parsed = urlparse.urlparse(link.attrib["href"])
-                if parsed.scheme.lower() in ["http", "https"]:
-                    spider.add(link.attrib["href"])
+                if not installable(package, absolute_link):
+                    parsed = urlparse.urlparse(absolute_link)
+                    if parsed.scheme.lower() in ["http", "https"]:
+                        spider.add(absolute_link)
 
         # Find installable links from the PyPI page
         installable_ |= process_page(html, package, url, verbose)
@@ -140,7 +141,7 @@ def main():
             except Exception:
                 continue
 
-            html = lxml.html.document_fromstring(resp.content)
+            html = html5lib.parse(resp.content, namespaceHTMLElements=False)
             installable_ |= process_page(html, package, link, verbose)
 
         # Find the ones only available externally
