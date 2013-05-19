@@ -15,6 +15,7 @@ import argparse
 import itertools
 import sys
 import urlparse
+import xmlrpclib
 
 import lxml.html
 import requests
@@ -63,12 +64,33 @@ def process_page(html, package, url, verbose):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-v", "--verbose", dest="verbose", action="store_true")
-    parser.add_argument("packages", nargs="+")
+
+    group = parser.add_argument_group('type')
+    group.add_argument("-p", "--packages",
+                                    dest="is_packages", action="store_true")
+    group.add_argument("-u", "--users", dest="is_users", action="store_true")
+
+    parser.add_argument("items", nargs="+")
 
     args = parser.parse_args()
 
-    # A list of packages to look for
-    packages = args.packages
+    if args.is_packages and args.is_users:
+        return "Must specify only one of -u and -p"
+
+    if not args.is_packages and not args.is_users:
+        return "Must specify one of -u or -p"
+
+    if args.is_packages:
+        # A list of packages to look for
+        packages = args.items
+
+    if args.is_users:
+        # a list of users
+        users = args.items
+        xmlrpc = xmlrpclib.ServerProxy("https://pypi.python.org/pypi")
+        packages = []
+        for user in users:
+            packages.extend([x[1] for x in xmlrpc.user_packages(user)])
 
     # Should we run in verbose mode
     verbose = args.verbose
@@ -84,6 +106,8 @@ def main():
         # Grab the page from PyPI
         url = "https://pypi.python.org/simple/%s/" % package
         resp = session.get(url)
+        if resp.status_code == 404:
+            continue
         resp.raise_for_status()
 
         html = lxml.html.document_fromstring(resp.content)
