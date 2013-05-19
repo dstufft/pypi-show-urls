@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import argparse
 import itertools
 import sys
 import urlparse
@@ -60,13 +61,17 @@ def process_page(html, package, url, verbose):
 
 
 def main():
-    # A list of packages to look for
-    packages = sys.argv[1:]
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-v", "--verbose", dest="verbose", action="store_true")
+    parser.add_argument("packages", nargs="+")
 
-    verbose = False
-    if len(packages) and packages[0] == "-v":
-        verbose = True
-        packages = packages[1:]
+    args = parser.parse_args()
+
+    # A list of packages to look for
+    packages = args.packages
+
+    # Should we run in verbose mode
+    verbose = args.verbose
 
     session = requests.session()
     session.verify = False
