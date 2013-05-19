@@ -149,7 +149,9 @@ def main():
         external = set()
         for candidate in installable_:
             version = version_for_url(package, candidate[1])
-            if candidate[0] == url:
+            if (candidate[0] == url and
+                    urlparse.urlparse(candidate[1]).netloc
+                        == "pypi.python.org"):
                 internal.add(version)
             else:
                 external.add(version)
