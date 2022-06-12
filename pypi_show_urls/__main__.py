@@ -14,14 +14,16 @@
 import argparse
 import itertools
 import sys
-import urlparse
-import xmlrpclib
+import urllib.parse as urlparse
+
+from xmlrpc import client as xmlrpclib
 
 import html5lib
 import requests
 
 from pkg_resources import safe_name
-from pip.req import parse_requirements
+
+from pip._internal.req import parse_requirements
 from setuptools.package_index import distros_for_url
 
 
@@ -65,7 +67,7 @@ def process_page(html, package, url, verbose, requirements):
                 installable_.add((url, absolute_link))
 
     if not verbose:
-        print("  %s Candiates from %s" % (len(installable_), url))
+        print("  %s Candidates from %s" % (len(installable_), url))
 
     return installable_
 
@@ -85,8 +87,8 @@ def main():
 
     args = parser.parse_args()
 
-    if len(filter(None,
-                [args.is_packages, args.is_users, args.requirement_file])) > 1:
+    if len(list(filter(None,
+                [args.is_packages, args.is_users, args.requirement_file]))) > 1:
         return "Must specify only one of -u, -p, and -r"
 
     if (not args.is_packages and not args.is_users
@@ -117,9 +119,9 @@ def main():
         packages = []
         requirements = {}
         for filename in files:
-            for req in parse_requirements(filename, options=fakeopts):
-                requirements.setdefault(req.name, []).append(req.req)
-                packages.append(req.name)
+            for req in parse_requirements(filename, session=False, options=fakeopts):
+                requirements.setdefault(req.requirement, []).append(req.requirement)
+                packages.append(req.requirement)
 
     # Should we run in verbose mode
     verbose = args.verbose
